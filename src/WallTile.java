@@ -4,6 +4,11 @@ public class WallTile extends GameTile{
 		super(position);
 		
 	}
+	
+	public WallTile() {
+		super();
+		
+	}
 
 	public String toString(){
 		return "#";

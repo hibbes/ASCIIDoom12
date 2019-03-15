@@ -6,6 +6,6 @@ public class GameTile {
 		this.position = position;
 	}
 	public GameTile(){
-		this.position = new Position(0,0);
+		this(new Position(0,0));
 	}
 }

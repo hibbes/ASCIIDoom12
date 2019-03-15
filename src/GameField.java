@@ -1,8 +1,8 @@
 public class GameField {
 
-	private GameTile[][] Level;
-	private int width;
-	private int height;
+	public GameTile[][] Level;
+	public int width;
+	public int height;
 	
 	
 	public GameField(int width, int height, String level){
@@ -26,16 +26,15 @@ public class GameField {
 		 
 	}
 	
-	public String toString(){
-		String output ="";
-		
-		for(int y= 0; y<height;y++){
-			for(int x = 0; x<width; x++){
-			  output=output+Level[x][y].toString();
+	public String toString() {
+		String result="";
+		for( int y = 0; y < height; ++y) {
+			for( int x = 0; x < width; ++x) {
+				result += Level[x][y].toString();
 			}
-			output=output+"\n";
 		}
-		return output;
+		
+		return result;
 	}
 	
 }

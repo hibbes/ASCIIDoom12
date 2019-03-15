@@ -29,7 +29,8 @@ public class World {
 				if( s.isEmpty() ) {
 					return;
 				}
-				switch( s.charAt(0) ) {
+				
+					switch( s.charAt(0) ) {
 					case 'w':
 						player.moveUp();
 						break;
@@ -46,5 +47,13 @@ public class World {
 						System.out.println("Key not found");
 						break;
 				}
+					
+					
 			}
+	boolean checkCollision(){
+		
+	//	player.position.equals(entsprechendes Walltile)
+		
+		
+	}
  }

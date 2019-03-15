@@ -11,6 +11,7 @@ public class GameMain {
 		World w = new World();
 		System.out.println(w);
 	 
+		
 		String key = in.readLine();
 
 		while(key != "q") {

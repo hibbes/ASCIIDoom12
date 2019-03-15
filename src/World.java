@@ -25,4 +25,26 @@ public class World {
 				}
 				return result;
 			}
+			public void keyPressed(String s) {
+				if( s.isEmpty() ) {
+					return;
+				}
+				switch( s.charAt(0) ) {
+					case 'w':
+						player.moveUp();
+						break;
+					case 's':
+						player.moveDown();
+						break;
+					case 'a': 
+						player.moveLeft();
+						break;
+					case 'd':
+						player.moveRight();
+						break;
+					default:
+						System.out.println("Key not found");
+						break;
+				}
+			}
  }

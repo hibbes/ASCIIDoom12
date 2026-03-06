@@ -1,4 +1,5 @@
 import java.io.IOException;
+import java.util.Scanner;
 
 public class GameMain {
    
@@ -7,17 +8,21 @@ public class GameMain {
 	// GameField gamefield= new GameField(7,8,"###   ### # ####### ### ### ####  #### ####### #### ####");
 	//	test t = new test();
 		
-		java.io.DataInputStream in = new java.io.DataInputStream(System.in);
+		Scanner scanner = new Scanner(System.in);
 		World w = new World();
 		System.out.println(w);
 	 
 		
-		String key = in.readLine();
+		String key = scanner.nextLine();
 
-		while(key != "q") {
+		while(!"q".equals(key)) {
 		w.keyPressed(key);
 		System.out.println(w);
-		key = in.readLine();
+		if (scanner.hasNextLine()) {
+		    key = scanner.nextLine();
+		} else {
+		    break;
+		}
 	}	
 	}
 	

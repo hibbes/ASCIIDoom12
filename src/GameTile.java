@@ -3,17 +3,31 @@
  *
  * <p>Das Spielfeld besteht aus einem 2D-Array von {@code GameTile}-Objekten.
  * Jede Kachel kennt ihre eigene Position und kann sich selbst in einen String
- * "einzeichnen" (Methode {@link #draw(String, int)}).</p>
+ * einzeichnen ({@link #draw(String, int)}).</p>
  *
- * <p><b>Vererbungshierarchie:</b>
+ * <h2>Vererbungshierarchie</h2>
  * <pre>
  *   GameTile
- *   ├── EmptyTile  (toString → " ")
- *   ├── WallTile   (toString → "#")
- *   └── Player     (toString → "@")
+ *   ├── EmptyTile   (toString → " ",  begehbar, neutral)
+ *   ├── WallTile    (toString → "#",  blockiert)
+ *   ├── DoorTile    (toString → "+",  nur mit Schlüssel begehbar)
+ *   ├── GoalTile    (toString → "X",  Level-Ausgang)
+ *   ├── Gold        (toString → "$",  Item: Punkte)
+ *   ├── Health      (toString → "♥",  Item: Heilung)
+ *   ├── Key         (toString → "k",  Item: Schlüssel)
+ *   ├── Enemy       (toString → "E",  bewegt sich, greift an)
+ *   └── Player      (toString → "@",  vom Benutzer gesteuert)
  * </pre>
- * Jede Unterklasse überschreibt nur {@code toString()} – die Zeichenlogik
- * in {@link #draw(String, int)} ist einmal in der Basisklasse implementiert.</p>
+ *
+ * <h2>Zwei didaktisch zentrale Methoden</h2>
+ * <ul>
+ *   <li>{@link #isPassable()} – darf der Spieler diese Kachel betreten?</li>
+ *   <li>{@link #onStep(Player, World)} – was passiert, wenn der Spieler
+ *       diese Kachel betritt? Template-Method-Pattern: jede Unterklasse
+ *       kann ihr eigenes Verhalten einhängen (Item aufheben, heilen,
+ *       Level beenden, ...), ohne dass {@link World#keyPressed} geändert
+ *       werden muss.</li>
+ * </ul>
  *
  * @author hibbes
  */
@@ -40,25 +54,60 @@ public class GameTile {
     }
 
     /**
+     * Darf der Spieler auf diese Kachel laufen?
+     *
+     * <p>Default: <b>ja</b>. Wände und (verschlossene) Türen überschreiben
+     * diese Methode und geben {@code false} zurück.</p>
+     *
+     * @return {@code true}, wenn die Kachel betreten werden darf
+     */
+    public boolean isPassable() {
+        return true;
+    }
+
+    /**
+     * Wird aufgerufen, sobald der Spieler diese Kachel <b>betritt</b>.
+     *
+     * <p>Default: macht nichts (für leere Felder und Wände sinnvoll).
+     * Items überschreiben diese Methode, um sich aufheben zu lassen,
+     * Heil-Potions heilen den Spieler, die {@link GoalTile} beendet das
+     * Level, usw.</p>
+     *
+     * <p><b>Ersetzen statt Löschen:</b> Items entfernen sich beim Aufheben
+     * selbst, indem sie über {@link World#replaceTile(int, int, GameTile)}
+     * durch eine {@link EmptyTile} ersetzt werden.</p>
+     *
+     * @param player der Spieler, der die Kachel betritt
+     * @param world  die Welt, in der die Interaktion stattfindet
+     */
+    public void onStep(Player player, World world) {
+        // Default: keine Aktion
+    }
+
+    /**
      * Zeichnet diese Kachel in einen bestehenden Spielfeld-String ein.
      *
-     * <p>Das Spielfeld wird als flacher String verwaltet. Diese Methode
-     * ersetzt das Zeichen an der richtigen Stelle durch das Zeichen dieser Kachel
-     * (das von {@link #toString()} zurückgegeben wird).</p>
-     *
-     * <p><b>Technische Umsetzung:</b><br>
-     * Strings sind in Java unveränderlich ({@code immutable}). Daher wird der
-     * String in ein {@code char[]}-Array umgewandelt, das Zeichen ersetzt und
-     * anschließend ein neuer String erstellt.</p>
+     * <p>Strings sind in Java <b>unveränderlich</b> ({@code immutable}).
+     * Daher wird der String in ein {@code char[]} umgewandelt, das Zeichen
+     * ersetzt und anschließend ein neuer String erstellt.</p>
      *
      * @param s           der aktuelle Spielfeld-String (alle Kacheln hintereinander)
      * @param worldLength Breite des Spielfelds (für die Index-Berechnung)
      * @return der neue String mit dieser Kachel eingezeichnet
      */
     public String draw(String s, int worldLength) {
-        int index = position.toIndex(worldLength);  // 2D-Position → 1D-Index
-        char[] chars = s.toCharArray();             // String → veränderliches Array
-        chars[index] = this.toString().charAt(0);   // Zeichen dieser Kachel einsetzen
-        return new String(chars);                   // Array → neuer String
+        int index = position.toIndex(worldLength);
+        char[] chars = s.toCharArray();
+        chars[index] = this.toString().charAt(0);
+        return new String(chars);
+    }
+
+    /**
+     * @return Symbol dieser Kachel (wird in die Konsolenausgabe eingezeichnet).
+     *         Default: ein Punkt – konkrete Kacheln überschreiben das.
+     */
+    @Override
+    public String toString() {
+        return ".";
     }
 }

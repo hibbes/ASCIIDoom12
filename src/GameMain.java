@@ -2,26 +2,28 @@ import java.io.IOException;
 import java.util.Scanner;
 
 /**
- * Einstiegspunkt und Spielschleife des ASCII-Doom-Spiels.
+ * Einstiegspunkt und Haupt-Spielschleife des ASCII-Doom-Spiels.
  *
- * <p><b>Spielprinzip:</b><br>
- * Das Spiel läuft in einer Endlosschleife in der Konsole. Nach jeder Tastatureingabe
- * wird die Spielwelt neu gerendert und ausgegeben.</p>
+ * <h2>Spielprinzip</h2>
+ * <p>Der Spieler bewegt sich durch eine Abfolge kleiner Konsolen-Levels,
+ * sammelt Gold, findet Schlüssel, öffnet Türen, kämpft gegen Gegner und
+ * muss zum Ziel-Feld ({@code X}) laufen, um ins nächste Level zu kommen.</p>
  *
- * <p><b>Steuerung:</b>
+ * <h2>Steuerung</h2>
  * <ul>
  *   <li>{@code w} – hoch</li>
  *   <li>{@code s} – runter</li>
  *   <li>{@code a} – links</li>
  *   <li>{@code d} – rechts</li>
+ *   <li>{@code Leerzeichen} – warten (lässt die Gegner ziehen, ohne selbst zu laufen)</li>
  *   <li>{@code q} – Spiel beenden</li>
  * </ul>
- * </p>
  *
- * <p><b>Spielschleife (Game Loop):</b><br>
- * Das Muster "Zeichnen → Eingabe lesen → Zustand aktualisieren → Wiederholen"
- * ist die Grundlage jedes Spiels. Hier in seiner einfachsten Form:
- * Die Schleife wartet auf eine Eingabe und setzt sie sofort um.</p>
+ * <h2>Spielschleife (Game Loop)</h2>
+ * <p>Das Muster „Zeichnen → Eingabe → Update → Gegner-Tick → Wiederholen"
+ * ist die Grundlage jedes rundenbasierten Spiels. Diese Implementierung
+ * blockiert bei jeder Eingabe auf die nächste Zeile – es gibt also keine
+ * „Echtzeit", sondern pro Spieler-Eingabe zieht genau einmal die Welt.</p>
  *
  * @author hibbes
  */
@@ -34,29 +36,89 @@ public class GameMain {
      * @throws IOException wenn die Konsoleneingabe fehlschlägt
      */
     public static void main(String[] args) throws IOException {
-
         Scanner scanner = new Scanner(System.in);
-        World w = new World();
+        Level[]  levels = Level.allLevels();
+        int      levelIdx = 0;
+        World    world = new World();
+        world.ladeLevel(levels[levelIdx]);
 
-        // Startansicht: Welt einmal ausgeben
-        System.out.println(w);
+        druckeIntro();
+        System.out.println(world);
 
-        // Erste Eingabe lesen
-        String key = scanner.nextLine();
+        while (true) {
+            if (!scanner.hasNextLine()) break;
+            String key = scanner.nextLine();
 
-        // Spielschleife: läuft bis der Spieler 'q' drückt
-        while (!"q".equals(key)) {
-            w.keyPressed(key);          // Eingabe verarbeiten, Spieler bewegen
-            System.out.println(w);      // aktualisierten Zustand ausgeben
+            // Spielabbruch
+            if ("q".equals(key)) {
+                System.out.println("Du gibst auf. Auf Wiedersehen!");
+                break;
+            }
 
-            // Nächste Eingabe (Schleife abbrechen wenn keine weiteren Zeilen)
-            if (scanner.hasNextLine()) {
-                key = scanner.nextLine();
-            } else {
+            // 1) Spielereingabe verarbeiten
+            world.keyPressed(key);
+
+            // 2) Gegner ziehen (nur wenn Level noch läuft)
+            if (!world.istLevelGeschafft() && !world.istVerloren()) {
+                world.tickGegner();
+            }
+
+            // 3) Spielzustand neu zeichnen
+            System.out.println(world);
+
+            // 4) Level geschafft?
+            if (world.istLevelGeschafft()) {
+                levelIdx++;
+                if (levelIdx >= levels.length) {
+                    druckeGewonnen(world);
+                    break;
+                }
+                System.out.println("═══ Level geschafft! Weiter zu " + levels[levelIdx].name + " ═══");
+                world.ladeLevel(levels[levelIdx]);
+                System.out.println(world);
+            }
+
+            // 5) Tot?
+            if (world.istVerloren()) {
+                druckeGameOver(world);
                 break;
             }
         }
+    }
 
-        System.out.println("Spiel beendet.");
+    // ── Hilfs-Ausgaben ────────────────────────────────────────────────────────
+
+    private static void druckeIntro() {
+        System.out.println("════════════════════════════════════════════");
+        System.out.println("   ASCIIDoom12 – Konsolen-Dungeon-Crawler");
+        System.out.println("════════════════════════════════════════════");
+        System.out.println("  Bewegung : w a s d");
+        System.out.println("  Warten   : Leertaste");
+        System.out.println("  Beenden  : q");
+        System.out.println();
+        System.out.println("  @ Du    # Wand   E Gegner   $ Gold");
+        System.out.println("  * HP    k Key    + Tür      X Ziel");
+        System.out.println("════════════════════════════════════════════");
+        System.out.println();
+    }
+
+    private static void druckeGameOver(World world) {
+        System.out.println();
+        System.out.println("    ╔════════════════════════════╗");
+        System.out.println("    ║        GAME OVER           ║");
+        System.out.println("    ║  Du wurdest besiegt.       ║");
+        System.out.println("    ╚════════════════════════════╝");
+        System.out.println("    Gesammeltes Gold: " + world.player.gold);
+    }
+
+    private static void druckeGewonnen(World world) {
+        System.out.println();
+        System.out.println("    ╔════════════════════════════╗");
+        System.out.println("    ║       GEWONNEN!            ║");
+        System.out.println("    ║  Du hast alle Level        ║");
+        System.out.println("    ║  abgeschlossen.            ║");
+        System.out.println("    ╚════════════════════════════╝");
+        System.out.println("    Endstand: " + world.player.gold + " Gold, "
+                         + world.player.hp + "/" + world.player.maxHp + " HP");
     }
 }

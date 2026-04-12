@@ -1,23 +1,29 @@
 /**
- * Das Spielfeld: ein 2D-Array aus {@link GameTile}-Objekten, das aus einem
- * String-Code erstellt wird.
+ * Das statische Spielfeld: ein 2D-Array aus {@link GameTile}-Objekten,
+ * das aus einem Level-String erzeugt wird.
  *
- * <p><b>Level-Encoding:</b><br>
- * Das Level wird als einfacher String übergeben, in dem jedes Zeichen für eine
- * Kachel steht:
+ * <h2>Level-Encoding</h2>
+ * <p>Das Level wird als <b>eine einzige Zeichenkette</b> übergeben. Jedes
+ * Zeichen entspricht einer Kachel; die Zeichen werden zeilenweise von
+ * links oben ausgelesen. Mögliche Symbole:
  * <ul>
- *   <li>{@code '#'} → {@link WallTile} (Wand)</li>
+ *   <li>{@code '#'} → {@link WallTile}  (Wand)</li>
  *   <li>{@code ' '} → {@link EmptyTile} (freies Feld)</li>
+ *   <li>{@code '$'} → {@link Gold}      (Gold-Item)</li>
+ *   <li>{@code '*'} → {@link Health}    (Heil-Potion)</li>
+ *   <li>{@code 'k'} → {@link Key}       (Schlüssel)</li>
+ *   <li>{@code '+'} → {@link DoorTile}  (Tür, verschlossen)</li>
+ *   <li>{@code 'X'} → {@link GoalTile}  (Level-Ausgang)</li>
  * </ul>
- * Die Zeichen werden zeilenweise gelesen: Index {@code x + y * width} entspricht
- * der Position (x, y).</p>
+ * </p>
  *
- * <p><b>Beispiel:</b>
- * <pre>
- *   String: "###   ### # ..."   (Breite=7)
- *   Zeile 0: # # #   (Index 0–6)
- *   Zeile 1: # # #   (Index 7–13)
- * </pre></p>
+ * <p>Gegner und der Spieler werden <b>nicht</b> im Grid gespeichert,
+ * sondern separat von {@link World} verwaltet. Ihre Startpositionen
+ * können zusätzlich übergeben werden.</p>
+ *
+ * <h2>Index-Umrechnung</h2>
+ * <p>Zugriff: {@code Level[x][y]}, wobei {@code x} = Spalte, {@code y} = Zeile.
+ * Für den flachen String gilt {@code index = x + y * width}.</p>
  *
  * @author hibbes
  */
@@ -25,7 +31,7 @@ public class GameField {
 
     /**
      * 2D-Array der Spielfeld-Kacheln.
-     * Zugriff: {@code Level[x][y]}, wobei x = Spalte, y = Zeile.
+     * Zugriff: {@code Level[x][y]}.
      */
     public GameTile[][] Level;
 
@@ -38,12 +44,13 @@ public class GameField {
     /**
      * Erstellt das Spielfeld aus einem Level-String.
      *
-     * <p>Jedes Zeichen des Strings entspricht einer Kachel.
-     * Die Kacheln werden von links oben zeilenweise gelesen.</p>
+     * <p>Die übergebene Zeichenkette muss exakt {@code width * height}
+     * Zeichen lang sein. Unbekannte Zeichen werden als leeres Feld
+     * interpretiert und auf der Konsole protokolliert.</p>
      *
      * @param width  Anzahl der Spalten
      * @param height Anzahl der Zeilen
-     * @param level  Level-String ({@code '#'} = Wand, {@code ' '} = frei)
+     * @param level  Level-String (Tile-Symbole, zeilenweise)
      */
     public GameField(int width, int height, String level) {
         this.width  = width;
@@ -52,34 +59,53 @@ public class GameField {
 
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                // String-Index: x + y * width (Zeile-für-Zeile-Encoding)
-                switch (level.charAt(x + y * width)) {
-                    case '#':
-                        Level[x][y] = new WallTile();
-                        break;
-                    case ' ':
-                        Level[x][y] = new EmptyTile();
-                        break;
-                    default:
-                        System.out.println("Unbekanntes Zeichen an Position " + (x + y * width));
-                }
+                int index = x + y * width;
+                char c = (index < level.length()) ? level.charAt(index) : ' ';
+                Level[x][y] = createTile(c);
+                Level[x][y].position = new Position(x, y);
             }
         }
     }
 
     /**
-     * Gibt das gesamte Spielfeld als String zurück (alle Zeilen aneinandergehängt,
-     * ohne Zeilenumbrüche – diese werden in {@link World#toString()} eingefügt).
+     * Fabrikmethode: wandelt ein Symbol aus dem Level-String in eine
+     * passende {@link GameTile}-Instanz um.
      *
-     * @return flacher String des Spielfelds
+     * <p><b>Didaktisch wichtig:</b> hier hängt eine klassische
+     * <i>Factory</i>-Struktur – eine zentrale Stelle, die aus Daten
+     * (hier: Zeichen) passende Objekte baut. Wer einen neuen Tile-Typ
+     * hinzufügt, muss nur diese Methode um einen Fall ergänzen.</p>
      */
+    private static GameTile createTile(char c) {
+        switch (c) {
+            case '#': return new WallTile();
+            case ' ': return new EmptyTile();
+            case '$': return new Gold();
+            case '*': return new Health();
+            case 'k': return new Key();
+            case '+': return new DoorTile();
+            case 'X': return new GoalTile();
+            default:
+                System.out.println("Unbekanntes Zeichen im Level: '" + c + "' – wird als Leerfeld behandelt.");
+                return new EmptyTile();
+        }
+    }
+
+    /**
+     * Gibt das gesamte Spielfeld als flachen String zurück
+     * (Zeilen ohne Umbruch aneinandergehängt).
+     *
+     * <p>Zeilen­umbrüche und Rahmen­beschriftung werden erst in
+     * {@link World#toString()} eingefügt.</p>
+     */
+    @Override
     public String toString() {
-        String result = "";
+        StringBuilder sb = new StringBuilder(width * height);
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                result += Level[x][y].toString();
+                sb.append(Level[x][y].toString());
             }
         }
-        return result;
+        return sb.toString();
     }
 }

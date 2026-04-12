@@ -1,8 +1,8 @@
 /**
  * Wand-Kachel – unpassierbares Hindernis.
  *
- * <p>Gibt ein Rautezeichen zurück: Der Spieler kann sich nicht auf dieses Feld bewegen.
- * Die Kollisionsprüfung in {@link World#checkCollision(int, int)} verhindert das Betreten.</p>
+ * <p>Wände blockieren Spieler und Gegner. Die Kollisionsprüfung erfolgt
+ * direkt über {@link #isPassable()}, das {@code false} zurückgibt.</p>
  *
  * @author hibbes
  * @see GameTile
@@ -10,9 +10,13 @@
  */
 public class WallTile extends GameTile {
 
-    /**
-     * @return {@code "#"} – Wand, unpassierbar
-     */
+    /** Wände sind nie betretbar. */
+    @Override
+    public boolean isPassable() {
+        return false;
+    }
+
+    /** @return {@code "#"} – Wand */
     @Override
     public String toString() {
         return "#";
